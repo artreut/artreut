@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Алексей — Новое лицо российских соцсетей</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Inter+Tight:wght@300;600&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --color-bg:    #f0e7e7;
+      --color-dark:  #2d2828;
+      --color-white: #ffffff;
+      --color-scroll:#f9f9f9;
+      --font-brand:  'Inter Tight', sans-serif;
+      --font-body:   'Inter', sans-serif;
+      --fs-hero:     clamp(72px, 22.5vw, 419px);
+      --fs-subtitle: clamp(18px, 3.2vw, 48px);
+      --fw-semibold: 600;
+      --fw-medium:   500;
+      --fw-light:    300;
+      --radius-btn:  12px;
+      /* Base circle size */
+      --circle-size: clamp(200px, 32vw, 491px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; overflow-x: hidden; }
+    body {
+      background: var(--color-bg);
+      font-family: var(--font-body);
+      color: var(--color-dark);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* =============================================
+       HERO
+    ============================================= */
+    .hero {
+      position: relative;
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Giant text — behind everything */
+    .hero__word {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font-brand);
+      font-weight: var(--fw-semibold);
+      font-size: var(--fs-hero);
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: var(--color-dark);
+      white-space: nowrap;
+      text-align: center;
+      user-select: none;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Top text — white + soft-light blend, in front of circle */
+    .hero__word--stroke {
+      z-index: 3;
+      color: #ffffff;
+      -webkit-text-stroke: 0;
+      mix-blend-mode: soft-light;
+    }
+
+    /* ── CIRCLE WRAP ──
+       This is what gets scaled by gesture/wheel.
+       The image inside stays 100%×100% always.
+    ───────────────────────────────────────────── */
+    .hero__photo-wrap {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      /* base position — JS will replace this transform */
+      transform: translate(-50%, -50%) scale(1);
+      transform-origin: center center;
+
+      width: var(--circle-size);
+      height: var(--circle-size);
+      border-radius: 50%;
+      overflow: hidden;
+      z-index: 2;
+      will-change: transform;
+      /* smooth during gesture */
+      transition: transform 0.06s ease-out;
+    }
+
+    .hero__photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
+      /* NO transform on the image itself */
+    }
+
+    /* Subtitle */
+    .hero__subtitle {
+      position: absolute;
+      left: 50%;
+      bottom: 128px;
+      transform: translateX(-50%);
+      font-family: var(--font-brand);
+      font-weight: var(--fw-light);
+      font-size: var(--fs-subtitle);
+      line-height: 1;
+      letter-spacing: -0.05em;
+      color: var(--color-dark);
+      white-space: nowrap;
+      text-align: center;
+      z-index: 4;
+    }
+
+    /* Scroll dot */
+    .hero__scroll {
+      position: absolute;
+      left: 50%;
+      bottom: 48px;
+      transform: translateX(-50%);
+      width: 20px; height: 32px;
+      z-index: 4;
+    }
+    .hero__scroll-track {
+      width: 100%; height: 100%;
+      border: 1px solid var(--color-scroll);
+      border-radius: 100px;
+      position: relative;
+    }
+    .hero__scroll-dot {
+      position: absolute;
+      bottom: 14px; left: 50%;
+      transform: translateX(-50%);
+      width: 2px; height: 5.6px;
+      background: var(--color-scroll);
+      border-radius: 10px;
+      animation: scrollBounce 1.8s ease-in-out infinite;
+    }
+    @keyframes scrollBounce {
+      0%,100% { bottom:14px; opacity:1; }
+      50%      { bottom:6px;  opacity:.4; }
+    }
+
+    /* =============================================
+       GESTURE PANEL
+    ============================================= */
+    .gesture-panel {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    .gesture-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: var(--color-dark);
+      color: var(--color-white);
+      border: none;
+      border-radius: 50px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: var(--fw-medium);
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .gesture-toggle:hover { transform: scale(1.03); }
+    .gesture-toggle.active { background: #b02020; }
+    .gesture-toggle__icon { font-size: 16px; }
+
+    /* Camera preview */
+    .gesture-preview {
+      position: relative;
+      width: 210px;
+      height: 158px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #111;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      display: none;
+    }
+    .gesture-preview.visible { display: block; }
+
+    .gesture-preview video,
+    .gesture-preview canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    /* Mirror video & canvas so it feels natural */
+    .gesture-preview video  { transform: scaleX(-1); }
+    .gesture-preview canvas { transform: scaleX(-1); }
+
+    .gesture-status {
+      position: absolute;
+      top: 8px; left: 8px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 10px;
+      font-family: var(--font-body);
+      padding: 3px 8px;
+      border-radius: 20px;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+    }
+
+    .zoom-badge {
+      position: absolute;
+      bottom: 8px; right: 8px;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font-body);
+      padding: 3px 10px;
+      border-radius: 20px;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+      min-width: 46px;
+      text-align: center;
+    }
+
+    /* Instruction tooltip shown before camera starts */
+    .gesture-tip {
+      position: absolute;
+      bottom: 8px; left: 8px; right: 8px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      font-size: 9px;
+      font-family: var(--font-body);
+      padding: 5px 8px;
+      border-radius: 8px;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+      text-align: center;
+      line-height: 1.4;
+      display: none;
+    }
+
+    /* =============================================
+       NAVBAR
+    ============================================= */
+    .navbar {
+      position: absolute;
+      top: 20px; left: 50%;
+      transform: translateX(-50%);
+      width: min(1849px, calc(100% - 40px));
+      height: 79px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+    }
+    .navbar__logo {
+      flex: 1 0 0; min-width: 0;
+      display: flex; align-items: center;
+      text-decoration: none;
+    }
+    .navbar__logo-text {
+      font-family: var(--font-brand);
+      font-weight: var(--fw-semibold);
+      font-size: 24px;
+      line-height: 24px;
+      letter-spacing: -2.4px;
+      color: var(--color-dark);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .navbar__nav { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
+    .navbar__nav-list { display: flex; align-items: center; gap: 18px; list-style: none; }
+    .navbar__nav-link {
+      font-family: var(--font-body);
+      font-weight: var(--fw-medium);
+      font-size: 14px;
+      line-height: 19.6px;
+      color: var(--color-dark);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .navbar__nav-dot {
+      width: 6px; height: 6px;
+      border-radius: 12px;
+      background: var(--color-dark);
+      display: inline-block;
+      vertical-align: middle;
+    }
+    /* active item shown inline only inside the visible nav */
+    .navbar__nav .navbar__nav-item--active { display: flex; align-items: center; gap: 8px; }
+    .navbar__actions {
+      flex: 1 0 0; min-width: 0;
+      display: flex; align-items: center;
+      justify-content: flex-end; gap: 12px;
+    }
+    .navbar__btn-info {
+      width: 46px; height: 46px;
+      border: 1px solid var(--color-dark);
+      border-radius: var(--radius-btn);
+      background: transparent;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .navbar__btn-cta {
+      display: flex; align-items: center; justify-content: center;
+      padding: 12px 18px;
+      background: var(--color-dark);
+      border-radius: var(--radius-btn);
+      border: none; cursor: pointer;
+      text-decoration: none; flex-shrink: 0;
+    }
+    .navbar__btn-cta span {
+      font-family: var(--font-body);
+      font-weight: var(--fw-medium);
+      font-size: 13.2px;
+      line-height: 21px;
+      color: var(--color-white);
+      white-space: nowrap;
+    }
+    .navbar__hamburger {
+      display: none; flex-direction: column;
+      gap: 5px; align-items: center; justify-content: center;
+      width: 46px; height: 46px;
+      border: 1px solid var(--color-dark);
+      border-radius: var(--radius-btn);
+      background: transparent;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .navbar__hamburger-line {
+      display: block; width: 18px; height: 2px;
+      background: var(--color-dark); border-radius: 2px;
+      transition: transform .3s ease, opacity .3s ease;
+      transform-origin: center;
+    }
+    .navbar__hamburger[aria-expanded="true"] .navbar__hamburger-line:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .navbar__hamburger[aria-expanded="true"] .navbar__hamburger-line:nth-child(2) { opacity:0; transform:scaleX(0); }
+    .navbar__hamburger[aria-expanded="true"] .navbar__hamburger-line:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .navbar__mobile-menu {
+      display: none; position: fixed;
+      inset: 0; background: var(--color-bg);
+      z-index: 99; flex-direction: column;
+      padding: 100px 32px 48px;
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.4s ease;
+    }
+    .navbar__mobile-menu.is-open { max-height: 100vh; }
+    .navbar__mobile-nav-list { list-style:none; display:flex; flex-direction:column; gap:4px; }
+    .navbar__mobile-nav-link {
+      display: block; padding: 18px 0;
+      font-family: var(--font-body); font-weight: var(--fw-medium);
+      font-size: 20px; color: var(--color-dark);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(45,40,40,.12);
+    }
+    .navbar__mobile-actions { margin-top: 32px; }
+
+    /* =============================================
+       RESPONSIVE
+    ============================================= */
+    @media (max-width: 1024px) {
+      /* Полностью убираем desktop-навигацию */
+      #desktop-nav,
+      .navbar__nav {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: hidden !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      .navbar__hamburger { display: flex; }
+      .navbar__mobile-menu { display: flex; }
+      .hero__subtitle { font-size: clamp(16px,3.5vw,30px); bottom:80px; white-space:normal; width:90%; }
+    }
+    @media (max-width: 768px) {
+      .navbar { top:12px; width:calc(100% - 32px); }
+      .navbar__actions .navbar__btn-info,
+      .navbar__actions .navbar__btn-cta { display:none; }
+      .hero__subtitle { font-size:clamp(14px,5vw,20px); letter-spacing:-0.04em; bottom:60px; width:92%; white-space:normal; }
+      .hero__scroll { bottom:20px; }
+      .gesture-panel { bottom:16px; right:16px; }
+      .gesture-preview { width:170px; height:128px; }
+    }
+  </style>
+</head>
+<body>
+
+<div style="position:relative;width:100%;min-height:100vh;overflow:hidden;">
+
+  <!-- NAVBAR -->
+  <header>
+    <nav class="navbar" aria-label="Основная навигация">
+      <a href="#" class="navbar__logo" aria-label="Алексей — главная">
+        <span class="navbar__logo-text">алексей</span>
+      </a>
+      <div class="navbar__nav" id="desktop-nav" role="navigation">
+        <ul class="navbar__nav-list">
+          <li class="navbar__nav-item"><a href="#about" class="navbar__nav-link">Обо мне</a></li>
+          <li class="navbar__nav-item navbar__nav-item--active">
+            <span class="navbar__nav-dot" aria-hidden="true"></span>
+            <a href="#services" class="navbar__nav-link">Услуги</a>
+          </li>
+          <li class="navbar__nav-item"><a href="#advantages" class="navbar__nav-link">Преимущества</a></li>
+          <li class="navbar__nav-item"><a href="#contacts" class="navbar__nav-link">Контакты</a></li>
+        </ul>
+      </div>
+      <div class="navbar__actions">
+        <button class="navbar__btn-info" aria-label="Информация">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="9" stroke="#2d2828" stroke-width="1.2"/>
+            <rect x="9.25" y="8.5" width="1.5" height="6" rx="0.75" fill="#2d2828"/>
+            <circle cx="10" cy="6.25" r="0.875" fill="#2d2828"/>
+          </svg>
+        </button>
+        <a href="#contacts" class="navbar__btn-cta"><span>Связаться со мной</span></a>
+        <button class="navbar__hamburger" id="hamburger-btn"
+                aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-menu">
+          <span class="navbar__hamburger-line"></span>
+          <span class="navbar__hamburger-line"></span>
+          <span class="navbar__hamburger-line"></span>
+        </button>
+      </div>
+    </nav>
+    <div class="navbar__mobile-menu" id="mobile-menu" aria-hidden="true">
+      <ul class="navbar__mobile-nav-list">
+        <li><a href="#about"      class="navbar__mobile-nav-link">Обо мне</a></li>
+        <li><a href="#services"   class="navbar__mobile-nav-link">Услуги</a></li>
+        <li><a href="#advantages" class="navbar__mobile-nav-link">Преимущества</a></li>
+        <li><a href="#contacts"   class="navbar__mobile-nav-link">Контакты</a></li>
+      </ul>
+      <div class="navbar__mobile-actions">
+        <a href="#contacts" class="navbar__btn-cta"><span>Связаться со мной</span></a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <main>
+    <section class="hero" aria-label="Главный экран">
+
+      <!-- BG text (solid, behind circle) -->
+      <p class="hero__word" aria-hidden="true">алексей</p>
+
+      <!-- THE CIRCLE — this whole element scales up/down -->
+      <div class="hero__photo-wrap" id="photo-wrap">
+        <img
+          class="hero__photo"
+          id="hero-photo"
+          src="https://www.figma.com/api/mcp/asset/3b4639db-5e9d-47af-8c07-5af8e3523bc2"
+          alt="Алексей на яхте"
+          draggable="false"
+        />
+      </div>
+
+      <!-- Stroke text (in front of circle) -->
+      <p class="hero__word hero__word--stroke" aria-hidden="true">алексей</p>
+
+      <h1 style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">
+        Алексей — Новое лицо российских соцсетей
+      </h1>
+
+      <p class="hero__subtitle">Новое лицо российских соцсетей</p>
+
+      <div class="hero__scroll" aria-hidden="true">
+        <div class="hero__scroll-track"><div class="hero__scroll-dot"></div></div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- GESTURE PANEL -->
+  <div class="gesture-panel" id="gesture-panel">
+    <div class="gesture-preview" id="gesture-preview">
+      <video id="camera-video" autoplay playsinline muted></video>
+      <canvas id="gesture-canvas"></canvas>
+      <div class="gesture-status" id="gesture-status">Загрузка…</div>
+      <div class="zoom-badge" id="zoom-badge">1.0×</div>
+    </div>
+    <button class="gesture-toggle" id="gesture-toggle" aria-label="Управление жестами">
+      <span class="gesture-toggle__icon">✋</span>
+      <span id="toggle-label">Жест-управление</span>
+    </button>
+  </div>
+
+</div>
+
+<!-- MediaPipe CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Mobile nav guard: hide desktop nav via JS too ── */
+  const desktopNav = document.getElementById('desktop-nav');
+  function syncNavVisibility() {
+    if (!desktopNav) return;
+    desktopNav.style.display = window.innerWidth <= 1024 ? 'none' : '';
+  }
+  syncNavVisibility();
+  window.addEventListener('resize', syncNavVisibility);
+
+  /* ── Hamburger ── */
+  const hBtn = document.getElementById('hamburger-btn');
+  const mMenu = document.getElementById('mobile-menu');
+  if (hBtn && mMenu) {
+    hBtn.addEventListener('click', function () {
+      const open = hBtn.getAttribute('aria-expanded') === 'true';
+      hBtn.setAttribute('aria-expanded', String(!open));
+      mMenu.setAttribute('aria-hidden', String(open));
+      mMenu.classList.toggle('is-open', !open);
+    });
+    mMenu.querySelectorAll('a').forEach(function (a) {
+      a.addEventListener('click', function () {
+        hBtn.setAttribute('aria-expanded','false');
+        mMenu.setAttribute('aria-hidden','true');
+        mMenu.classList.remove('is-open');
+      });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key==='Escape' && mMenu.classList.contains('is-open')) {
+        hBtn.setAttribute('aria-expanded','false');
+        mMenu.setAttribute('aria-hidden','true');
+        mMenu.classList.remove('is-open');
+        hBtn.focus();
+      }
+    });
+  }
+
+  /* ── Scale state ──
+     We scale the WRAP (the circle), not the inner image.
+     The wrap already has transform: translate(-50%,-50%) scale(1)
+     We compose: translate(-50%,-50%) scale(currentScale)
+  ───────────────────────────────────────────────────────── */
+  const wrap      = document.getElementById('photo-wrap');
+  const zoomBadge = document.getElementById('zoom-badge');
+
+  const MIN_S = 1;
+  const MAX_S = 3.5;
+
+  let currentScale = 1;
+  let targetScale  = 1;
+  let rafId        = null;
+
+  function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+
+  function setWrapTransform(s) {
+    // Keep the -50%/-50% centering and apply scale on top
+    wrap.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+
+  // Smooth lerp loop
+  function startLerp() {
+    if (rafId) return;
+    function loop() {
+      currentScale += (targetScale - currentScale) * 0.10;
+      if (Math.abs(targetScale - currentScale) < 0.001) {
+        currentScale = targetScale;
+        setWrapTransform(currentScale);
+        zoomBadge.textContent = currentScale.toFixed(1) + '×';
+        rafId = null;
+        return;
+      }
+      setWrapTransform(currentScale);
+      zoomBadge.textContent = currentScale.toFixed(1) + '×';
+      rafId = requestAnimationFrame(loop);
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function scaleTo(s, instant) {
+    targetScale = clamp(s, MIN_S, MAX_S);
+    if (instant) {
+      currentScale = targetScale;
+      setWrapTransform(currentScale);
+      zoomBadge.textContent = currentScale.toFixed(1) + '×';
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    } else {
+      startLerp();
+    }
+  }
+
+  /* ── Mouse wheel (fallback) ── */
+  document.addEventListener('wheel', function (e) {
+    if (!e.ctrlKey && Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    scaleTo(targetScale * (e.deltaY < 0 ? 1.10 : 0.91), false);
+  }, { passive: false });
+
+  /* ── Touch pinch (fallback for mobile without camera) ── */
+  let lastPinchDist = null;
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length === 2) {
+      lastPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (e.touches.length === 2 && lastPinchDist) {
+      e.preventDefault();
+      const d = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      scaleTo(targetScale * (d / lastPinchDist), false);
+      lastPinchDist = d;
+    }
+  }, { passive: false });
+  document.addEventListener('touchend', function (e) {
+    if (e.touches.length < 2) lastPinchDist = null;
+  });
+
+  /* Double-click/tap to reset */
+  let lastTap = 0;
+  document.addEventListener('dblclick', function () { scaleTo(1, false); });
+  document.addEventListener('touchend', function (e) {
+    if (e.changedTouches.length === 1) {
+      const now = Date.now();
+      if (now - lastTap < 280) scaleTo(1, false);
+      lastTap = now;
+    }
+  });
+
+  /* ── MediaPipe Hands gesture control ── */
+  const toggleBtn  = document.getElementById('gesture-toggle');
+  const toggleLbl  = document.getElementById('toggle-label');
+  const preview    = document.getElementById('gesture-preview');
+  const videoEl    = document.getElementById('camera-video');
+  const canvasEl   = document.getElementById('gesture-canvas');
+  const statusEl   = document.getElementById('gesture-status');
+
+  let gestureActive  = false;
+  let cameraInstance = null;
+  let handsInstance  = null;
+
+  // Pinch tracking between thumb (4) and index (8)
+  let baseDistance    = null;  // reference distance when gesture started
+  let baseScale       = 1;     // scale at that moment
+  let prevTwoFingers  = false; // was pinch active last frame
+
+  function dist2D(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function onResults(results) {
+    const ctx = canvasEl.getContext('2d');
+    canvasEl.width  = videoEl.videoWidth  || 640;
+    canvasEl.height = videoEl.videoHeight || 480;
+    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+    if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+      statusEl.textContent = '👀 Покажи руку';
+      // Reset base so next detection starts fresh
+      baseDistance   = null;
+      prevTwoFingers = false;
+      return;
+    }
+
+    const lm = results.multiHandLandmarks[0];
+    const w  = canvasEl.width;
+    const h  = canvasEl.height;
+
+    // Draw skeleton
+    if (window.drawConnectors && window.HAND_CONNECTIONS) {
+      drawConnectors(ctx, lm, HAND_CONNECTIONS,
+        { color: 'rgba(255,255,255,0.5)', lineWidth: 1.5 });
+    }
+    if (window.drawLandmarks) {
+      drawLandmarks(ctx, lm,
+        { color: '#ff4444', lineWidth: 1, radius: 2 });
+    }
+
+    const thumb = lm[4];   // thumb tip
+    const index = lm[8];   // index tip
+
+    // ── Highlight thumb & index ──
+    [thumb, index].forEach(function (pt) {
+      ctx.beginPath();
+      ctx.arc(pt.x * w, pt.y * h, 10, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,221,68,0.9)';
+      ctx.fill();
+    });
+
+    // ── Line between thumb and index ──
+    ctx.beginPath();
+    ctx.moveTo(thumb.x * w, thumb.y * h);
+    ctx.lineTo(index.x * w, index.y * h);
+    ctx.strokeStyle = '#ffdd44';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    const currentDist = dist2D(thumb, index);
+
+    // ── Detect "pinch open" state: fingers far enough apart ──
+    // If this is the first frame with a hand, set baseline
+    if (baseDistance === null) {
+      baseDistance = currentDist;
+      baseScale    = currentScale; // whatever scale is now
+    }
+
+    // Calculate new target scale based on ratio to baseline
+    const ratio    = currentDist / baseDistance;
+    const newScale = clamp(baseScale * ratio, MIN_S, MAX_S);
+    targetScale    = newScale;
+    startLerp();
+
+    // ── Label in preview ──
+    const midX = ((thumb.x + index.x) / 2) * w;
+    const midY = ((thumb.y + index.y) / 2) * h - 16;
+    ctx.fillStyle = '#ffdd44';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(newScale.toFixed(1) + '×', midX, midY);
+
+    statusEl.textContent = '✋ Управляю жестом';
+  }
+
+  async function startGesture() {
+    preview.classList.add('visible');
+    statusEl.textContent = 'Загрузка модели…';
+
+    try {
+      handsInstance = new Hands({
+        locateFile: function (file) {
+          return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/' + file;
+        }
+      });
+      handsInstance.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.72,
+        minTrackingConfidence: 0.65
+      });
+      handsInstance.onResults(onResults);
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+      videoEl.srcObject = stream;
+      await videoEl.play();
+
+      if (window.Camera) {
+        cameraInstance = new Camera(videoEl, {
+          onFrame: async function () {
+            await handsInstance.send({ image: videoEl });
+          },
+          width: 640,
+          height: 480
+        });
+        cameraInstance.start();
+      } else {
+        // manual fallback loop
+        (async function loop() {
+          if (!gestureActive) return;
+          await handsInstance.send({ image: videoEl });
+          requestAnimationFrame(loop);
+        })();
+      }
+
+      statusEl.textContent = '👀 Покажи руку';
+      toggleLbl.textContent = 'Выключить';
+      toggleBtn.classList.add('active');
+
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = err.name === 'NotAllowedError'
+        ? '🚫 Нет доступа к камере'
+        : '❌ ' + err.message;
+    }
+  }
+
+  function stopGesture() {
+    if (cameraInstance) { cameraInstance.stop(); cameraInstance = null; }
+    if (handsInstance)  { handsInstance.close(); handsInstance = null; }
+    if (videoEl.srcObject) {
+      videoEl.srcObject.getTracks().forEach(function (t) { t.stop(); });
+      videoEl.srcObject = null;
+    }
+    baseDistance = null;
+    preview.classList.remove('visible');
+    toggleLbl.textContent = 'Жест-управление';
+    toggleBtn.classList.remove('active');
+  }
+
+  toggleBtn.addEventListener('click', function () {
+    gestureActive = !gestureActive;
+    gestureActive ? startGesture() : stopGesture();
+  });
+
+  // Init transform
+  setWrapTransform(1);
+
+})();
+</script>
+</body>
+</html>
